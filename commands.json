@@ -1,0 +1,21 @@
+{
+  "env": "test1-services",
+  "system": [
+    {
+      "name": "agg-private",
+      "dns": "private-api.agg.test1-services.gb.tsm.internal",
+      "port": "22",
+      "commands": [
+        "curl -s http://localhost:8090/build/info"
+      ]
+    },
+    {
+      "name": "providers",
+      "dns": "private-api.agg.test1-services.gb.tsm.internal",
+      "port": "22",
+      "commands": [
+        "ls /usr/local/lib/providerLib/holidays"
+      ]
+    }
+  ]
+}
