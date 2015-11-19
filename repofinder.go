@@ -13,7 +13,6 @@ import (
 	"github.com/gorilla/mux"
 	"strconv"
 	"bytes"
-	"reflect"
 )
 
 
@@ -47,6 +46,7 @@ type Context struct {
 		Commands []string `json:"commands"`
 		DNS      string   `json:"dns"`
 		Port     string   `json:"port"`
+		Channel  string   `json:"channel"`
 		Name     string   `json:"name"`
 	} `json:"system"`
 }
@@ -63,7 +63,8 @@ type Versions struct {
 
 type Version struct {
 	System    string `json:"system"`
-	Version   string  `json:"version"`
+	Channel   string `json:"channel"`
+	Version   []string  `json:"version"`
 	BuildInfo BuildInfo `json:"buildInfo"`
 }
 
@@ -76,6 +77,10 @@ func (vers *Versions) AddVersion(version Version) []Version {
 func (vers *Versions) AddEnv(env string) string {
 	vers.Env = env
 	return vers.Env
+}
+func (ver *Version) AddVer(vers []string) []string {
+	ver.Version = vers
+	return ver.Version
 }
 func (vers *Version) AddBuildInfo(buildInfo BuildInfo) BuildInfo {
 	vers.BuildInfo = buildInfo
@@ -101,8 +106,6 @@ func main() {
 
 	fmt.Println("Listening...")
 	http.ListenAndServe(":3000", nil)
-
-
 
 	fmt.Printf("The environment you picked was --> %s\n ", args.Env)
 
@@ -144,8 +147,6 @@ func ComposeJSON() *Versions {
 
 	v := new(Versions)
 
-
-
 	file, err1 := os.Open("commands.json")
 	if err1 != nil {
 		fmt.Println("Error:", err1)
@@ -182,7 +183,7 @@ func ComposeJSON() *Versions {
 				fmt.Fprintf(os.Stderr, "command run error: %s\n", err)
 				os.Exit(1)
 			} else {
-				fmt.Println("reflect -> ",reflect.TypeOf(prov))
+
 				if (strings.Contains(system.Name, "agg-private")) {
 					decode := json.NewDecoder(bytes.NewReader([]uint8(prov.(string))))
 					bi := BuildInfo{}
@@ -191,14 +192,24 @@ func ComposeJSON() *Versions {
 					if err1 != nil {
 						fmt.Println("Error: decoding build info", err1)
 					} else {
-						versArry[i] = Version{system.Name, "", bi}
+						versArry[i] = Version{system.Name, "",nil, bi}
 						v.AddVersion(versArry[i])
 					}
 
 
 				} else {
 
-					versArry[i] = Version{system.Name, prov.(string), BuildInfo{}}
+					str1 := strings.Split(prov.(string), ".jar")
+					for n, x := range str1 {
+						str1[n] = strings.TrimSpace(x)
+					}
+
+					for i, y := range str1 {
+						fmt.Printf("No %d --yy--> %s\n", i, y)
+					}
+
+
+					versArry[i] = Version{system.Name, system.Channel,str1, BuildInfo{}}
 					v.AddVersion(versArry[i])
 				}
 			}
@@ -299,8 +310,14 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 	if (strings.Contains(cmd.Path, "providerLib")) {
 
-		s1 := string([]byte(out))[(strings.Index(string([]byte(out)), ".jar") - 7):(strings.Index(string([]byte(out)), ".jar"))]
+		fmt.Printf("Jars ->%s<--\n\n", string([]byte(out)))
 
+		fmt.Printf("\n\nRedone jars -->%s<--", strings.Replace(string([]byte(out)), "\n", "", 9999))
+
+
+		//		s1 := string([]byte(out))[(strings.Index(string([]byte(out)), ".jar") - 7):(strings.Index(string([]byte(out)), ".jar"))]
+
+		s1 := string([]byte(out))
 
 		return err, s1
 	} else if (strings.Contains(cmd.Path, "build")) {
@@ -314,6 +331,20 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 
 	return err, nil
+}
+
+// two byte-oriented functions identical except for operator comparing c to 127.
+func stripCtlFromBytes(str string) string {
+	b := make([]byte, len(str))
+	var bl int
+	for i := 0; i < len(str); i++ {
+		c := str[i]
+		if c >= 32 && c != 127 {
+			b[bl] = c
+			bl++
+		}
+	}
+	return string(b[:bl])
 }
 
 func (client *SSHClient) newSession() (*ssh.Session, error) {
