@@ -13,14 +13,16 @@ import (
 	"github.com/gorilla/mux"
 	"strconv"
 	"bytes"
+	"time"
 )
 
 
 
 type SSHClient struct {
-	Config *ssh.ClientConfig
-	Host   string
-	Port   int
+	Config      *ssh.ClientConfig
+	Host        string
+	Port        int
+	ConnTimeout time.Duration
 }
 
 type SSHCommand struct {
@@ -186,17 +188,12 @@ func ComposeJSON() *Versions {
 
 				commd := getSshCommand(cmd)
 
-				if (strings.Contains(system.Name, "agg-private")) {
-
-
-				}
-
 				if err, prov := client.RunCommand(commd); err != nil {
 					fmt.Fprintf(os.Stderr, "command run error: %s\n", err)
 					os.Exit(1)
 				} else {
 
-					if (strings.Contains(system.Name, "agg-private")) {
+					if (strings.Contains(system.Name, "agg")) {
 						decode := json.NewDecoder(bytes.NewReader([]uint8(prov.(string))))
 						bi := BuildInfo{}
 						err1 := decode.Decode(&bi)
@@ -238,6 +235,7 @@ func getSshClient(sshCnf *ssh.ClientConfig, host string, port string) *SSHClient
 		Config: sshCnf,
 		Host:   host,
 		Port:   nPort,
+		ConnTimeout: time.Duration(time.Millisecond * 1000), //set to 500ms
 	}
 	return client
 }
@@ -326,7 +324,8 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 		return err, s1
 	}
-
+	defer w.Close()
+	defer r.Close()
 
 	return err, nil
 }
