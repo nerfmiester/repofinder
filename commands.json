@@ -1,20 +1,103 @@
 {
-  "env": "test1-services",
-  "system": [
+  "prov": [
     {
-      "name": "agg-private",
-      "dns": "private-api.agg.test1-services.gb.tsm.internal",
-      "port": "22",
-      "commands": [
-        "curl -s http://localhost:8090/build/info"
+      "env": "test1-services",
+      "system": [
+        {
+          "name": "agg-private",
+          "dns": "private-api.agg.test1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "",
+          "commands": [
+            "curl -s http://localhost:8090/build/info"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.test1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Holidays",
+          "commands": [
+            "ls /usr/local/lib/providerLib/holidays"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.test1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Carhire",
+          "commands": [
+            "ls /usr/local/lib/providerLib/carhire"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.test1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Flights",
+          "commands": [
+            "ls /usr/local/lib/providerLib/flights"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.test1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Hotels",
+          "commands": [
+            "ls /usr/local/lib/providerLib/hotels"
+          ]
+        }
       ]
     },
     {
-      "name": "providers",
-      "dns": "private-api.agg.test1-services.gb.tsm.internal",
-      "port": "22",
-      "commands": [
-        "ls /usr/local/lib/providerLib/holidays"
+      "env": "ci1-services",
+      "system": [
+        {
+          "name": "agg-private",
+          "dns": "private-api.agg.ci1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "",
+          "commands": [
+            "curl -s http://localhost:8090/build/info"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.ci1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Holidays",
+          "commands": [
+            "ls /usr/local/lib/providerLib/holidays"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.ci1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Carhire",
+          "commands": [
+            "ls /usr/local/lib/providerLib/carhire"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.ci1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Flights",
+          "commands": [
+            "ls /usr/local/lib/providerLib/flights"
+          ]
+        },
+        {
+          "name": "providers",
+          "dns": "private-api.agg.ci1-services.gb.tsm.internal",
+          "port": "22",
+          "channel": "Hotels",
+          "commands": [
+            "ls /usr/local/lib/providerLib/hotels"
+          ]
+        }
       ]
     }
   ]

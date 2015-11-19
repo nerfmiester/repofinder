@@ -41,14 +41,16 @@ var args struct {
 }
 
 type Context struct {
-	Env    string `json:"env"`
-	System []struct {
-		Commands []string `json:"commands"`
-		DNS      string   `json:"dns"`
-		Port     string   `json:"port"`
-		Channel  string   `json:"channel"`
-		Name     string   `json:"name"`
-	} `json:"system"`
+	Prov []struct {
+		Env    string `json:"env"`
+		System []struct {
+			Channel  string   `json:"channel"`
+			Commands []string `json:"commands"`
+			DNS      string   `json:"dns"`
+			Name     string   `json:"name"`
+			Port     string   `json:"port"`
+		} `json:"system"`
+	} `json:"prov"`
 }
 
 type BuildInfo struct {
@@ -57,6 +59,10 @@ type BuildInfo struct {
 }
 
 type Versions struct {
+	Prov []Envs `json:"prov"`
+}
+
+type Envs struct {
 	Env string `json:"env"`
 	Vrs []Version `json:"versions"`
 }
@@ -68,13 +74,17 @@ type Version struct {
 	BuildInfo BuildInfo `json:"buildInfo"`
 }
 
+func (vers *Versions) AddEnvs(env Envs) []Envs {
+	vers.Prov = append(vers.Prov, env)
+	return vers.Prov
+}
 
-func (vers *Versions) AddVersion(version Version) []Version {
+func (vers *Envs) AddVersion(version Version) []Version {
 	vers.Vrs = append(vers.Vrs, version)
 	return vers.Vrs
 }
 
-func (vers *Versions) AddEnv(env string) string {
+func (vers *Envs) AddEnv(env string) string {
 	vers.Env = env
 	return vers.Env
 }
@@ -144,8 +154,8 @@ func ComposeJSON() *Versions {
 	sshCnf := getSshConfig()
 
 	versArry := make([]Version, 2)
-
 	v := new(Versions)
+
 
 	file, err1 := os.Open("commands.json")
 	if err1 != nil {
@@ -160,67 +170,62 @@ func ComposeJSON() *Versions {
 	if err != nil {
 		fmt.Println("Error:", err)
 	}
-	v.AddEnv(context.Env)
 
-	for i, system := range context.System {
+	for _, prov := range context.Prov {
 
-		fmt.Printf("For %d get system --> %s at %s", i, system.Name, system.DNS)
+		e := new(Envs)
 
-		for i, cmd := range system.Commands {
+		e.AddEnv(prov.Env)
+		fmt.Println("envs -->", prov.Env)
 
-			client := getSshClient(sshCnf, system.DNS, system.Port)
+		for _, system := range prov.System {
 
-			commd := getSshCommand(cmd)
+			for i, cmd := range system.Commands {
 
-			fmt.Printf("Running command: %s\n", commd.Path)
+				client := getSshClient(sshCnf, system.DNS, system.Port)
 
-			if (strings.Contains(system.Name, "agg-private")) {
-
-
-			}
-
-			if err, prov := client.RunCommand(commd); err != nil {
-				fmt.Fprintf(os.Stderr, "command run error: %s\n", err)
-				os.Exit(1)
-			} else {
+				commd := getSshCommand(cmd)
 
 				if (strings.Contains(system.Name, "agg-private")) {
-					decode := json.NewDecoder(bytes.NewReader([]uint8(prov.(string))))
-					bi := BuildInfo{}
-					err1 := decode.Decode(&bi)
-
-					if err1 != nil {
-						fmt.Println("Error: decoding build info", err1)
-					} else {
-						versArry[i] = Version{system.Name, "",nil, bi}
-						v.AddVersion(versArry[i])
-					}
 
 
+				}
+
+				if err, prov := client.RunCommand(commd); err != nil {
+					fmt.Fprintf(os.Stderr, "command run error: %s\n", err)
+					os.Exit(1)
 				} else {
 
-					str1 := strings.Split(prov.(string), ".jar")
-					for n, x := range str1 {
-						str1[n] = strings.TrimSpace(x)
+					if (strings.Contains(system.Name, "agg-private")) {
+						decode := json.NewDecoder(bytes.NewReader([]uint8(prov.(string))))
+						bi := BuildInfo{}
+						err1 := decode.Decode(&bi)
+
+						if err1 != nil {
+							fmt.Println("Error: decoding build info", err1)
+						} else {
+							versArry[i] = Version{system.Name, "", nil, bi}
+							e.AddVersion(versArry[i])
+						}
+
+
+					} else {
+
+						str1 := strings.Split(prov.(string), ".jar")
+						for n, x := range str1 {
+							str1[n] = strings.TrimSpace(x)
+						}
+						versArry[i] = Version{system.Name, system.Channel, str1, BuildInfo{}}
+						e.AddVersion(versArry[i])
 					}
-
-					for i, y := range str1 {
-						fmt.Printf("No %d --yy--> %s\n", i, y)
-					}
-
-
-					versArry[i] = Version{system.Name, system.Channel,str1, BuildInfo{}}
-					v.AddVersion(versArry[i])
 				}
 			}
 		}
+		v.AddEnvs(*e)
+
 	}
 
-	for _, vrs := range v.Vrs {
 
-
-		fmt.Printf("Ranger\t\t\t-->%s<-- \n\t\t-->%s<-- \n", vrs.System, vrs.Version)
-	}
 	return v
 }
 
@@ -310,12 +315,6 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 	if (strings.Contains(cmd.Path, "providerLib")) {
 
-		fmt.Printf("Jars ->%s<--\n\n", string([]byte(out)))
-
-		fmt.Printf("\n\nRedone jars -->%s<--", strings.Replace(string([]byte(out)), "\n", "", 9999))
-
-
-		//		s1 := string([]byte(out))[(strings.Index(string([]byte(out)), ".jar") - 7):(strings.Index(string([]byte(out)), ".jar"))]
 
 		s1 := string([]byte(out))
 
@@ -324,7 +323,6 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 
 		s1 := string([]byte(out))
-		fmt.Printf("build-->%s<--", string(s1))
 
 		return err, s1
 	}
