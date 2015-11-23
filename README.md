@@ -7,7 +7,9 @@ make goinstall
 
 To build for other architectures 
 
-make GOOS=$(os) GOARCH=$(arch)
+make GOOS=linux GOARCH=amd64 commit_message=deploy gitPush
+
+commit_message = the commit message pushed to github.
 
 const goosList = "android darwin dragonfly freebsd linux nacl \ 
   netbsd openbsd plan9 solaris windows "
