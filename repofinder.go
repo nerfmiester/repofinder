@@ -182,9 +182,9 @@ func ComposeJSON() *Versions {
 
 		for _, system := range prov.System {
 
-			for i, cmd := range system.Commands {
+			client := getSshClient(sshCnf, system.DNS, system.Port)
 
-				client := getSshClient(sshCnf, system.DNS, system.Port)
+			for i, cmd := range system.Commands {
 
 				commd := getSshCommand(cmd)
 
@@ -197,7 +197,7 @@ func ComposeJSON() *Versions {
 						decode := json.NewDecoder(bytes.NewReader([]uint8(prov.(string))))
 						bi := BuildInfo{}
 						err1 := decode.Decode(&bi)
-
+						fmt.Printf("bi %s", bi)
 						if err1 != nil {
 							fmt.Println("Error: decoding build info", err1)
 						} else {
@@ -278,6 +278,10 @@ func PublicKeyFile(file string) ssh.AuthMethod {
 	return ssh.PublicKeys(key)
 }
 
+func print(w io.Writer) {
+	fmt.Fprintln(w, "output")
+}
+
 func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 	rescueStdout := os.Stdout
 	r, w, _ := os.Pipe()
@@ -287,8 +291,9 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 		session *ssh.Session
 		err error
 	)
-
+	fmt.Println("Session creation")
 	if session, err = client.newSession(); err != nil {
+		fmt.Println("Session creation  err", err)
 		return err, nil
 	}
 	defer session.Close()
@@ -297,15 +302,14 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 		return err, nil
 	}
 
-
+	fmt.Println("Session run",cmd.Path)
 	if err = session.Run(cmd.Path); err != nil {
+		fmt.Println("Session run err", err)
 		return err, nil
 	}
-	//err = session.Run(cmd.Path)
-	//fmt.Printf("Err -> %s\n", err.Error())
+	print(cmd.Stdout)
 
-
-	w.Close()
+		w.Close()
 
 	out, _ := ioutil.ReadAll(r)
 	os.Stdout = rescueStdout
@@ -318,7 +322,7 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 
 		return err, s1
 	} else if (strings.Contains(cmd.Path, "build")) {
-
+		fmt.Printf("-->%s<--", string([]byte(out)))
 
 		s1 := string([]byte(out))
 
@@ -330,19 +334,6 @@ func (client *SSHClient) RunCommand(cmd *SSHCommand) (error, interface{}) {
 	return err, nil
 }
 
-// two byte-oriented functions identical except for operator comparing c to 127.
-func stripCtlFromBytes(str string) string {
-	b := make([]byte, len(str))
-	var bl int
-	for i := 0; i < len(str); i++ {
-		c := str[i]
-		if c >= 32 && c != 127 {
-			b[bl] = c
-			bl++
-		}
-	}
-	return string(b[:bl])
-}
 
 func (client *SSHClient) newSession() (*ssh.Session, error) {
 	connection, err := ssh.Dial("tcp", fmt.Sprintf("%s:%d", client.Host, client.Port), client.Config)
